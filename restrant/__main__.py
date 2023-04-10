@@ -6,6 +6,9 @@ from typing import Union
 import restrant
 from restrant.loaders import load_code
 from restrant import clients, writers
+import yaml
+
+logging.basicConfig(level="INFO")
 
 
 def load_from_file_if_path_exists(str_or_path, meta=""):
@@ -41,14 +44,40 @@ class Main:
     ):
 
         prompt_template = load_from_file_if_path_exists(prompt_or_path)
-
         code = load_code(code_loc)
         prompt = prompt_template.format(code)
-        logging.info("asking {client}")
-        logging.info("prompt: {prompt}")
         client = get_lm_client(model_name, **kwargs)
+        logging.info(f"asking {client}")
+        logging.info(f"prompt: {prompt}")
         client_response = client.generate(prompt, max_tokens)
-        writers.write_contents(client_response, code_loc, file_output)
+        logging.info(f"response : {client_response}")
+        writers.write_contents(
+            client_response,
+            code_loc,
+            file_output,
+            extract_content=writers.extract_yaml_front_matter,
+        )
+
+    def make_client(
+        self,
+        spec_path,
+        language_with_libs="using FastAPI in Python",
+        out_file_name="client.py",
+        max_tokens=1024,
+        prompt_or_path=restrant.Defaults.make_client_prompt,
+        model_name="gpt-3.5-turbo",
+        **kwargs,
+    ):
+        prompt_template = load_from_file_if_path_exists(prompt_or_path)
+        with open(spec_path) as f:
+            spec = yaml.safe_load(f)
+        prompt = prompt_template.format(language_with_libs, spec)
+        client = get_lm_client(model_name, **kwargs)
+        logging.info(f"asking {client}")
+        logging.info(f"prompt: {prompt}")
+        client_response = client.generate(prompt, max_tokens)
+        logging.info(f"response : {client_response}")
+        writers.write_contents(client_response, file_output=out_file_name, url=None)
 
 
 if __name__ == "__main__":

@@ -28,11 +28,11 @@ def extract_yaml_front_matter(contents):
     return yaml_front_matter
 
 
-def write_contents(contents, url, file_output):
+def write_contents(contents, url, file_output, extract_content=lambda s: s):
     if file_output:
         if type(file_output) is str:
             out_path = file_output
         else:
             out_path = make_schema_filename(url)
         with open(out_path, "w") as f:
-            f.write(extract_yaml_front_matter(contents))
+            f.write(extract_content(contents))
